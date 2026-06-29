@@ -264,9 +264,18 @@ jobs:
       shell: bash
       run: cargo check --no-default-features --target='${{ matrix.target }}'
 
+    - name: Install cargo-zigbuild
+      if: "!matrix.vm && contains(matrix.os, 'ubuntu') && !matrix.cross && matrix.platform != 'wasm32'"
+      run: pip3 install --break-system-packages ziglang cargo-zigbuild
+
     - name: Build target
       if: "!inputs.run-test && !matrix.vm"
-      run: cargo build --release --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}' $PACKAGE
+      run: |
+        if [[ "${{ matrix.os }}" == *"ubuntu"* && "${{ matrix.cross }}" != "true" && "${{ matrix.platform }}" != "wasm32" ]]; then
+          cargo zigbuild --release --target='${{ matrix.target }}.2.28' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}' $PACKAGE
+        else
+          cargo build --release --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}' $PACKAGE
+        fi
       env:
         PACKAGE: ${{ matrix.platform == 'wasm32' && '-p tree-sitter' || '' }}
 
